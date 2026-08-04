@@ -10,12 +10,28 @@ struct ScoreBarApp: App {
                 .environment(engine)
                 .frame(width: 300)
         } label: {
-            Text("\(engine.markusScore) – \(engine.marcusScore)")
-                .font(.system(size: 12, weight: .bold, design: .monospaced))
+            menuBarLabel
         }
         .menuBarExtraStyle(.window)
-        .onChange(of: engine.markusScore) { old, new in
-            if new > old { FullScreenConfettiPanel.shared.show() }
+        .onChange(of: engine.player1Score) { old, new in
+            // Full-screen confetti fires on both Macs when Player 1 scores
+            if new > old && engine.settings.fullScreenConfettiEnabled {
+                FullScreenConfettiPanel.shared.show()
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var menuBarLabel: some View {
+        if engine.gameWinner != nil {
+            HStack(spacing: 3) {
+                Text("🏆")
+                Text("\(engine.player1Score)–\(engine.player2Score)")
+                    .font(.system(size: 12, weight: .bold, design: .monospaced))
+            }
+        } else {
+            Text("⚽ \(engine.player1Score) – \(engine.player2Score)")
+                .font(.system(size: 12, weight: .bold, design: .monospaced))
         }
     }
 }
