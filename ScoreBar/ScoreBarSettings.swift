@@ -1,16 +1,21 @@
 import Foundation
 
 // MARK: - GoalEvent
-// One logged goal — kept in history for the recent-goals feed.
+
+/// A single scored goal, persisted in the recent-goals history feed.
 struct GoalEvent: Codable, Identifiable {
-    var id         = UUID()
-    let scorer:     String   // "player1" or "player2"
-    let timestamp:  Date
-    let p1Score:    Int      // score after this goal
-    let p2Score:    Int
+    var id        = UUID()
+    /// `"player1"` or `"player2"`.
+    let scorer:    String
+    let timestamp: Date
+    /// Score for player 1 **after** this goal was recorded.
+    let p1Score:   Int
+    /// Score for player 2 **after** this goal was recorded.
+    let p2Score:   Int
 
     static let storageKey = "sb_history"
 
+    /// Loads all persisted goal events from `UserDefaults`, or returns `[]` on failure.
     static func loadAll() -> [GoalEvent] {
         guard
             let data   = UserDefaults.standard.data(forKey: storageKey),
@@ -19,6 +24,7 @@ struct GoalEvent: Codable, Identifiable {
         return events
     }
 
+    /// Encodes and writes `events` to `UserDefaults`. Silently no-ops on encode failure.
     static func saveAll(_ events: [GoalEvent]) {
         guard let data = try? JSONEncoder().encode(events) else { return }
         UserDefaults.standard.set(data, forKey: storageKey)
@@ -26,7 +32,11 @@ struct GoalEvent: Codable, Identifiable {
 }
 
 // MARK: - AllTimeStats
-// Wins-only ledger. Goals are not tracked here to avoid sync double-counting.
+
+/// Wins-only ledger, persisted independently from per-game history.
+///
+/// Goals are intentionally **not** accumulated here to avoid double-counting
+/// when the peer Mac also receives and stores the same goal events.
 struct AllTimeStats: Codable {
     var player1Wins: Int = 0
     var player2Wins: Int = 0
@@ -34,6 +44,7 @@ struct AllTimeStats: Codable {
 
     static let storageKey = "sb_stats"
 
+    /// Loads persisted all-time stats from `UserDefaults`, or returns zeroed defaults.
     static func load() -> AllTimeStats {
         guard
             let data  = UserDefaults.standard.data(forKey: storageKey),
@@ -42,15 +53,20 @@ struct AllTimeStats: Codable {
         return stats
     }
 
-    static func save(_ s: AllTimeStats) {
-        guard let data = try? JSONEncoder().encode(s) else { return }
+    /// Encodes and writes `stats` to `UserDefaults`. Silently no-ops on encode failure.
+    static func save(_ stats: AllTimeStats) {
+        guard let data = try? JSONEncoder().encode(stats) else { return }
         UserDefaults.standard.set(data, forKey: storageKey)
     }
 }
 
 // MARK: - ScoreSettings
-// All feature flags live here so every feature can be turned on/off
-// independently — just flip a toggle in Settings and press Save.
+
+/// All user-configurable preferences for ScoreBar.
+///
+/// Stored as a single JSON blob in `UserDefaults`. Every feature is independently
+/// togglable — flip a switch in `SettingsView` and press **Save**.
+/// Adding new optional properties with default values keeps this Codable-backward-compatible.
 struct ScoreSettings: Codable {
 
     // ── Player identity ───────────────────────────────────────────────────
@@ -90,8 +106,9 @@ struct ScoreSettings: Codable {
         return s
     }
 
-    static func save(_ s: ScoreSettings) {
-        guard let data = try? JSONEncoder().encode(s) else { return }
+    /// Encodes and writes `settings` to `UserDefaults`. Silently no-ops on encode failure.
+    static func save(_ settings: ScoreSettings) {
+        guard let data = try? JSONEncoder().encode(settings) else { return }
         UserDefaults.standard.set(data, forKey: storageKey)
     }
 }
