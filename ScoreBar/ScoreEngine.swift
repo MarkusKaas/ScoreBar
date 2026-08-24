@@ -1,8 +1,18 @@
+import AppKit   // NSSound
 import Foundation
 import MultipeerConnectivity
 import Observation
-import AppKit   // NSSound
 
+/// Single source of truth for the ScoreBar game state.
+///
+/// `ScoreEngine` uses MultipeerConnectivity to keep two Macs in sync
+/// over a local Wi-Fi / peer-to-peer connection. The host that records a goal
+/// is the source of truth; the peer applies the received `ScorePacket` rather than
+/// re-calculating locally.
+///
+/// `@Observable` (Swift 5.9 macro) lets SwiftUI views subscribe directly via
+/// `@Environment(ScoreEngine.self)` without wrapping in `@StateObject`/`@ObservedObject`.
+/// `NSObject` inheritance is required by the `MCSession` / `MCNearbyService*` delegates.
 @Observable
 class ScoreEngine: NSObject {
 
@@ -112,23 +122,30 @@ class ScoreEngine: NSObject {
         persist(); broadcast()
     }
 
+    /// Saves and applies new settings, then broadcasts current state to the peer
+    /// so it can re-evaluate display (e.g. updated player names, win score).
     func applySettings(_ newSettings: ScoreSettings) {
         settings = newSettings
         ScoreSettings.save(newSettings)
-        broadcast() // push updated state so peer re-evaluates display
+        broadcast()
     }
 
+    /// Clears the local goal-event history. Does not affect all-time win records.
     func clearHistory() {
         history = []
         GoalEvent.saveAll([])
     }
 
+    /// Resets the all-time wins ledger to zero. Does not affect current-game scores.
     func clearStats() {
         stats = AllTimeStats()
         AllTimeStats.save(stats)
     }
 
     // MARK: - Win detection
+
+    /// Checks whether `scorer` has reached `settings.winScore` and updates `gameWinner`.
+    /// Plays the win or goal sound depending on the outcome.
     private func checkWin(for scorer: String) {
         guard settings.winDetectionEnabled else {
             playSound(settings.goalSound)
@@ -162,6 +179,8 @@ class ScoreEngine: NSObject {
     }
 
     // MARK: - Persistence
+
+    /// Writes current scores and winner to `UserDefaults` for crash/relaunch recovery.
     private func persist() {
         UserDefaults.standard.set(player1Score, forKey: "sb_player1")
         UserDefaults.standard.set(player2Score, forKey: "sb_player2")
@@ -173,6 +192,9 @@ class ScoreEngine: NSObject {
     }
 
     // MARK: - Multipeer broadcast
+
+    /// Encodes current score state into a `ScorePacket` and sends it reliably to all
+    /// connected peers. No-ops when no peers are connected.
     private func broadcast() {
         guard !session.connectedPeers.isEmpty else { return }
         let packet = ScorePacket(player1: player1Score, player2: player2Score, winner: gameWinner)
@@ -182,9 +204,14 @@ class ScoreEngine: NSObject {
 }
 
 // MARK: - Network packet
+
+/// Minimal payload sent over MultipeerConnectivity on every score change.
+/// The receiving Mac applies these values directly — it does not independently
+/// validate them against `winScore` to avoid any drift between devices.
 private struct ScorePacket: Codable {
     let player1: Int
     let player2: Int
+    /// `"player1"`, `"player2"`, or `nil` if the game is still in progress.
     let winner:  String?
 }
 
