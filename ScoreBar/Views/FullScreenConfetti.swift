@@ -1,15 +1,20 @@
 import AppKit
 import SwiftUI
 
-// MARK: - Panel manager
+// MARK: - FullScreenConfettiPanel
 
+/// Singleton that creates a borderless, click-through `NSPanel` covering the main screen
+/// and fills it with animated confetti for ~2 seconds.
+///
+/// The panel sits at `.screenSaver` window level so it appears above all other windows,
+/// including the menu-bar popover that triggered it.
 final class FullScreenConfettiPanel {
     static let shared = FullScreenConfettiPanel()
     private var panel: NSPanel?
 
+    /// Shows the full-screen confetti panel. No-ops if a panel is already on screen.
     func show() {
-        // Don't stack panels if one is already running
-        guard panel == nil else { return }
+        guard panel == nil else { return }  // prevent stacking multiple panels
 
         let screen = NSScreen.main ?? NSScreen.screens[0]
         let frame  = screen.frame
@@ -44,8 +49,10 @@ final class FullScreenConfettiPanel {
     }
 }
 
-// MARK: - Full-screen confetti view
+// MARK: - FullScreenConfettiView
 
+/// Full-screen SwiftUI view that animates 150 confetti particles launched
+/// from three evenly-spaced horizontal positions across the screen.
 private struct FullScreenConfettiView: View {
     let size: CGSize
 
@@ -91,11 +98,12 @@ private struct FullScreenConfettiView: View {
         .onAppear { launch() }
     }
 
+    /// Spawns 150 particles in three bursts (left, centre, right),
+    /// then triggers the animation after a 30 ms mount delay.
     private func launch() {
         let w = size.width
         let h = size.height
 
-        // 3 bursts from different horizontal positions
         let origins: [CGFloat] = [w * 0.25, w * 0.50, w * 0.75]
 
         particles = (0..<150).map { i in
