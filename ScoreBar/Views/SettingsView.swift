@@ -1,11 +1,16 @@
-import SwiftUI
 import AppKit
+import SwiftUI
 
+/// Settings panel that slides up from the bottom of the popover.
+///
+/// All controls mirror the current `ScoreSettings` in local `@State`.
+/// Changes are only committed to the engine when the user taps **Save**,
+/// so back-navigation without saving discards edits cleanly.
 struct SettingsView: View {
     @Environment(ScoreEngine.self) var engine
     @Binding var show: Bool
 
-    // ── Local state ──────────────────────────────────────────────────────
+    // MARK: - Local state
     @State private var player1Name:             String = "Markus"
     @State private var player2Name:             String = "Marcus"
     @State private var winScore:                Double = 10
@@ -238,6 +243,7 @@ struct SettingsView: View {
 
     // MARK: - Helpers
 
+    /// Styled uppercase section header used throughout the settings scroll view.
     private func sectionLabel(_ text: String) -> some View {
         Text(text)
             .font(.system(size: 11, weight: .medium))
@@ -247,6 +253,7 @@ struct SettingsView: View {
             .frame(maxWidth: .infinity, alignment: .leading)
     }
 
+    /// Consistent icon + title + subtitle toggle row used for every optional feature.
     @ViewBuilder
     private func featureToggle(isOn: Binding<Bool>, icon: String,
                                title: String, subtitle: String) -> some View {
@@ -265,6 +272,7 @@ struct SettingsView: View {
         .toggleStyle(.switch)
     }
 
+    /// Labelled picker row with an inline play button to preview the selected sound.
     @ViewBuilder
     private func soundRow(label: String, selection: Binding<String>, options: [String]) -> some View {
         HStack(spacing: 8) {
