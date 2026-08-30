@@ -1,5 +1,12 @@
 import SwiftUI
 
+/// Root content of the ScoreBar menu-bar popover.
+///
+/// Sections (top to bottom): header row → score/win panel → foosball table →
+/// optional match history → optional all-time stats → reset/quit buttons.
+///
+/// A `ConfettiView` overlay fires on every goal. The `SettingsView` slides up
+/// from the bottom as a `ZStack` overlay when the gear icon is tapped.
 struct PopoverView: View {
     @Environment(ScoreEngine.self) var engine
     @State private var confettiTrigger = 0
@@ -277,12 +284,15 @@ struct PopoverView: View {
     }
 }
 
-// MARK: - Player column
+// MARK: - PlayerColumn
+
+/// Vertical stack showing a player's name, score, optional win-progress bar, and ±1 buttons.
 private struct PlayerColumn: View {
     let name:        String
     let score:       Int
     let color:       Color
-    let targetScore: Int?    // nil = no win detection
+    /// Winning score threshold. `nil` when win detection is disabled.
+    let targetScore: Int?
     let onIncrement: () -> Void
     let onDecrement: () -> Void
 
@@ -328,7 +338,9 @@ private struct PlayerColumn: View {
     }
 }
 
-// MARK: - Score button
+// MARK: - ScoreButton
+
+/// Rounded square button used for the `+` and `–` score actions in each `PlayerColumn`.
 private struct ScoreButton: View {
     let label:  String
     let bg:     Color
